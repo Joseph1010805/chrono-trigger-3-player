@@ -1,0 +1,14 @@
+# Never commit game data
+*.sfc
+*.smc
+*.srm
+*.state*
+*.msu
+*.pcm
+*.bin
+*.cue
+*.iso
+rom/
+out/
+tools/asar/
+__pycache__/
