@@ -31,8 +31,8 @@ three flavours for each game:
 | **FMV** | The anime cutscenes and a video gallery (single player) |
 | **3 Player + FMV** | Both |
 
-The files named `Chrono Trigger - ...` are for the original game. The ones
-named `Chrono Trigger Plus - ...` are for CT+.
+Files starting `Chrono-Trigger-` are for the original game. Files starting
+`CT-Plus-` are for Chrono Trigger Plus.
 
 All of them include MSU-1 support, so you can add CD-quality music if you have
 an MSU-1 music pack. Without one, the game plays its normal music.
