@@ -73,6 +73,7 @@ menu_init:
 	LDA #$01
 	STA.l !MENUON
 	LDA #$00
+	STA.l $7F1EE8           ; FONTLD: sprite font not loaded this menu yet
 	STA.l !TAGF
 	STA.l !TAGF+1
 	STA.l !TAGF+2
@@ -119,7 +120,7 @@ menu_modes:
 	BNE .pad
 	JSL ctl_menu_l          ; (Select from a port no pad reads: ctlports.asm)
 	JSR claims_maybe
-	JSR draw_tags
+	JSL draw_sprites        ; the player tags, as sprites (no panel squash)
 .out:
 	PLP
 	RTS
@@ -457,8 +458,8 @@ tag_mx:                         ; X = slot*$180 + i*2 (panels are 6 rows apart)
 	TAX
 	SEP #$20
 	RTS
-tag_follow: db $FF,$A5,$AE,$AB         ; " FOL"
-tag_idle:   db $FF,$A8,$A3,$AB         ; " IDL"
+tag_follow: db $A5,$AE,$AB,$FF         ; "FOL" (ends at the level column; was " FOL", the L spilled past the panel border)
+tag_idle:   db $A8,$A3,$AB,$FF         ; "IDL"
 claims_init:
 	SEP #$20
 	LDA.l !RINIT

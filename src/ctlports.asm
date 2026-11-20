@@ -202,6 +202,33 @@ need45:
 	CMP #$03
 +	RTS
 
+; the field menu's own main loop ($C281E3, identical in CT and CT+): once a
+; frame, AFTER the game has drawn this frame's panels and BEFORE the next NMI
+; uploads them.  Read ports 4/5 and run the claim/tag code here, not in the
+; NMI: in the NMI it delayed the screen-on (black bar) and raced the game's
+; panel draw (a stat line squashed on a click).
+ctl_menu2_l:
+	PHB
+	PHD
+	PHP
+	REP #$30
+	PEA $0000
+	PLD                     ; DP = 0
+	SEP #$20
+	LDA #$7E
+	PHA
+	PLB                     ; DB = $7E
+	JSR pp_check
+	JSR r45_main            ; ports 4/5, main-loop safe (no vblank busy-wait)
+	JSL menu_modes_l        ; Select = claim, Y = cycle, and the tags
+	SEP #$20
+	LDA #$00
+	STA.l $7E0D01           ; the instruction we replaced (clear the vblank flag)
+	PLP
+	PLD
+	PLB
+	JML $C281B9             ; back into the menu's main loop
+
 ; fieldmenu.asm pad_merge (NMI, after the auto-read): the X menu reads
 ; ports 4/5 here; elsewhere the main-loop copies age out (never stale)
 p45_nmi_l:
@@ -210,9 +237,14 @@ p45_nmi_l:
 	PHA
 	LDA.l !MENUON
 	BEQ +
-	JSR pp_check
-	JSR r45_now
-	BRA .out
+	LDA.l $7E0D10           ; in the menu, the claim/tag/read work runs from the
+	BEQ .out                ; menu's own main loop (ctl_menu2_l), NOT here.  All
+	JSR font_load           ; (force-blank window: load the tag sprite font once)
+	LDA.l $7E0D10
+	STA.l $002100           ; that's left here is turning the screen on early
+	BRA .out                ; (brightness $7E0D10): our pad-merge runs before the
+				; game's own screen-on, so without this the top of the
+				; menu renders black.  Safe now - no heavy work follows.
 +	LDA.l !P45AGE
 	BEQ .out
 	DEC
@@ -612,9 +644,9 @@ ctlp_draw_l:
 	PLP
 	SEC
 	RTL
-xd_help:	db $B2,$BE,$C5,$BE,$BC,$CD,$E3,$AC,$C2,$C7,$BE,$FF,$FF
+xd_help:	db $B2,$BE,$C5,$BE,$BC,$CD,$E3,$A2,$C1,$C8,$C8,$CC,$BE,$FF,$FF
 		db $B2,$CD,$BA,$CB,$CD,$E3,$B1,$BE,$CC,$CE,$C6,$BE,$00
-				; Select:Mine  Start:Resume
+				; Select:Choose  Start:Resume
 
 ; X = $40 + slot(!XT)*20 (m 8 on exit)
 xd_col:
@@ -727,4 +759,81 @@ pz_dma:
 .no:
 	SEP #$20
 	CLC
+	RTS
+
+; Load our player-tag sprite font into OBJ VRAM, once per menu open (flag
+; $7F1EE8, cleared in menu_init).  Called from the menu NMI while the screen
+; is still force-blanked, so the VRAM write is safe.  OBJ tiles start at VRAM
+; word $4000; we use tile $B0 -> word $4B00.  (m 8, x 16)
+font_load:
+	PHP
+	SEP #$20
+	REP #$10
+	; player-tag palettes (match the combat pointers): colour 1 = the text,
+	; colour 15 = $14A5 (the panel's own bg, so the chip blends in).
+	LDA #209               ; pal 5 (white, P1) colour 1 = $7FFF
+	STA.l $002121
+	LDA #$FF
+	STA.l $002122
+	LDA #$7F
+	STA.l $002122
+	LDA #223               ; pal 5 colour 15 = $14A5
+	STA.l $002121
+	LDA #$A5
+	STA.l $002122
+	LDA #$14
+	STA.l $002122
+	LDA #225               ; pal 6 (light blue, P2) colour 1 = $7EC8
+	STA.l $002121
+	LDA #$C8
+	STA.l $002122
+	LDA #$7E
+	STA.l $002122
+	LDA #239
+	STA.l $002121
+	LDA #$A5
+	STA.l $002122
+	LDA #$14
+	STA.l $002122
+	LDA #241               ; pal 7 (red, P3) colour 1 = $001F
+	STA.l $002121
+	LDA #$1F
+	STA.l $002122
+	LDA #$00
+	STA.l $002122
+	LDA #255
+	STA.l $002121
+	LDA #$A5
+	STA.l $002122
+	LDA #$14
+	STA.l $002122
+	LDA.l $7F1EE8
+	BEQ +                   ; (BNE .fdone is out of range: the CGRAM block is long)
+	JMP .fdone
++	LDA #$01
+	STA.l $7F1EE8
+	LDA #$80
+	STA.l $002115          ; VRAM word increment
+	LDA #$00
+	STA.l $002116          ; VMADD = $4B00 (OBJ tile $B0)
+	LDA #$4B
+	STA.l $002117
+	LDA #$01                ; DMA7: word, A->B, auto-inc
+	STA.l $004370
+	LDA #$18                ; B-bus $2118
+	STA.l $004371
+	LDA.b #font_data&$FF
+	STA.l $004372
+	LDA.b #(font_data>>8)&$FF
+	STA.l $004373
+	LDA.b #font_data>>16
+	STA.l $004374
+	LDA.b #(font_end-font_data)&$FF
+	STA.l $004375
+	LDA.b #((font_end-font_data)>>8)&$FF
+	STA.l $004376
+	LDA #$80
+	STA.l $00420B          ; go, channel 7
+.fdone:
+	PLP
 	RTS

@@ -1325,22 +1325,16 @@ update_joined:
 	PLP
 	RTS
 
-; pad_merge, in vblank (field, world map and menus all read the pads in the
-; NMI): keep it short - only the X menu's Select / Y / tags run here; the rest
-; of update_joined runs from the main loops (field_tick, ow_tick, battle_input)
+; pad_merge, in vblank: just track whose X opens the menu.  The X menu's
+; Select / Y / tags used to run here too, but that NMI work delayed the menu's
+; screen-on (black bar) and raced its panel redraw (a stat line squashed) - it
+; now runs from the menu's own main loop (ctl_menu2_l, ctlports.asm).
 nmi_players:
 	PHP
 	SEP #$20
 	REP #$10
 	JSR track_opener        ; (whose X opens the menu: it opens this frame)
-	SEP #$20
-	LDA.l !MENUON
-	BEQ +
-	LDA.l !RINIT
-	CMP #$A5
-	BNE +
-	JSL menu_modes_l
-+	PLP
+	PLP
 	RTS
 
 ; battle_input, after pushing the buttons the game will hear (word at 4,s

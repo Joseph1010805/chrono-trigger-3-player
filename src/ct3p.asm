@@ -41,6 +41,7 @@ if !CTPLUS
 	!DB2 = $510000          ; gallery + read-only tables
 	!DB3 = $520000          ; more far code (aff.asm)
 	!DB4 = $530000          ; and more (trail.asm)
+	!DB5 = $540000          ; tag sprites + font (tagsprite.asm): free expansion
 	!FSLBL = $FF3D00        ; the New Game label (must be in bank FF)
 	!ITEMDESC = $ED203C     ; item description pointers (CT+ moved them)
 	!ITEMDESCBANK = $ED0000
@@ -51,6 +52,7 @@ else
 	!DB2 = $DC0000
 	!DB3 = $E1F600          ; more far code (aff.asm): the free end of bank E1
 	!DB4 = $E4D000          ; and more (trail.asm): free zeros in bank E4
+	!DB5 = $E4E000          ; tag sprites + font (tagsprite.asm): free zeros after DB4
 	!FSLBL = $FF2060
 	!ITEMDESC = $CC2EB1
 	!ITEMDESCBANK = $CC0000
@@ -230,6 +232,15 @@ org $C29A53
 	JSL tab_cur
 	NOP
 	NOP
+
+; --- the field menu's own main loop (STZ $0D01 / BRA, identical in CT and CT+):
+; run the mod's menu input (claims, tags, ports 4/5) HERE, once a frame after
+; the game drew, instead of in the NMI.  ctl_menu2_l does the replaced
+; STZ $0D01 and loops back to $C281B9.
+org $C281E3
+	JML ctl_menu2_l
+	NOP
+warnpc $C281E8
 
 ; --- hook 5: battle NMI, the panel upload's source CF:E346 (21 bytes)
 org $CFE346
@@ -882,4 +893,7 @@ incsrc "field.asm"
 incsrc "ow.asm"
 incsrc "script.asm"
 incsrc "far.asm"
+org !DB5
+incsrc "tagsprite.asm"
+warnpc !DB5+$800
 endif
