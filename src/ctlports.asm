@@ -239,8 +239,6 @@ p45_nmi_l:
 	BEQ +
 	LDA.l $7E0D10           ; in the menu, the claim/tag/read work runs from the
 	BEQ .out                ; menu's own main loop (ctl_menu2_l), NOT here.  All
-	JSR font_load           ; (force-blank window: load the tag sprite font once)
-	LDA.l $7E0D10
 	STA.l $002100           ; that's left here is turning the screen on early
 	BRA .out                ; (brightness $7E0D10): our pad-merge runs before the
 				; game's own screen-on, so without this the top of the
@@ -759,81 +757,4 @@ pz_dma:
 .no:
 	SEP #$20
 	CLC
-	RTS
-
-; Load our player-tag sprite font into OBJ VRAM, once per menu open (flag
-; $7F1EE8, cleared in menu_init).  Called from the menu NMI while the screen
-; is still force-blanked, so the VRAM write is safe.  OBJ tiles start at VRAM
-; word $4000; we use tile $B0 -> word $4B00.  (m 8, x 16)
-font_load:
-	PHP
-	SEP #$20
-	REP #$10
-	; player-tag palettes (match the combat pointers): colour 1 = the text,
-	; colour 15 = $14A5 (the panel's own bg, so the chip blends in).
-	LDA #209               ; pal 5 (white, P1) colour 1 = $7FFF
-	STA.l $002121
-	LDA #$FF
-	STA.l $002122
-	LDA #$7F
-	STA.l $002122
-	LDA #223               ; pal 5 colour 15 = $14A5
-	STA.l $002121
-	LDA #$A5
-	STA.l $002122
-	LDA #$14
-	STA.l $002122
-	LDA #225               ; pal 6 (light blue, P2) colour 1 = $7EC8
-	STA.l $002121
-	LDA #$C8
-	STA.l $002122
-	LDA #$7E
-	STA.l $002122
-	LDA #239
-	STA.l $002121
-	LDA #$A5
-	STA.l $002122
-	LDA #$14
-	STA.l $002122
-	LDA #241               ; pal 7 (red, P3) colour 1 = $001F
-	STA.l $002121
-	LDA #$1F
-	STA.l $002122
-	LDA #$00
-	STA.l $002122
-	LDA #255
-	STA.l $002121
-	LDA #$A5
-	STA.l $002122
-	LDA #$14
-	STA.l $002122
-	LDA.l $7F1EE8
-	BEQ +                   ; (BNE .fdone is out of range: the CGRAM block is long)
-	JMP .fdone
-+	LDA #$01
-	STA.l $7F1EE8
-	LDA #$80
-	STA.l $002115          ; VRAM word increment
-	LDA #$00
-	STA.l $002116          ; VMADD = $4B00 (OBJ tile $B0)
-	LDA #$4B
-	STA.l $002117
-	LDA #$01                ; DMA7: word, A->B, auto-inc
-	STA.l $004370
-	LDA #$18                ; B-bus $2118
-	STA.l $004371
-	LDA.b #font_data&$FF
-	STA.l $004372
-	LDA.b #(font_data>>8)&$FF
-	STA.l $004373
-	LDA.b #font_data>>16
-	STA.l $004374
-	LDA.b #(font_end-font_data)&$FF
-	STA.l $004375
-	LDA.b #((font_end-font_data)>>8)&$FF
-	STA.l $004376
-	LDA #$80
-	STA.l $00420B          ; go, channel 7
-.fdone:
-	PLP
 	RTS

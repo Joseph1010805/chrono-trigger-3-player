@@ -73,7 +73,6 @@ menu_init:
 	LDA #$01
 	STA.l !MENUON
 	LDA #$00
-	STA.l $7F1EE8           ; FONTLD: sprite font not loaded this menu yet
 	STA.l !TAGF
 	STA.l !TAGF+1
 	STA.l !TAGF+2
@@ -120,7 +119,7 @@ menu_modes:
 	BNE .pad
 	JSL ctl_menu_l          ; (Select from a port no pad reads: ctlports.asm)
 	JSR claims_maybe
-	JSL draw_sprites        ; the player tags, as sprites (no panel squash)
+	JSR draw_tags
 .out:
 	PLP
 	RTS
